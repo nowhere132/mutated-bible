@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION graces_collect(
 BEGIN
     INSERT INTO graces (link, description, tags, created, last_modified, player)
     VALUES (p_link, p_description, p_tags, CURRENT_DATE, CURRENT_DATE, p_player);
-END;
+END; 
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION graces_enhance(
@@ -46,11 +46,16 @@ CREATE OR REPLACE FUNCTION graces_show(
 ) AS $$
 BEGIN 
     RETURN QUERY 
-    SELECT link, description, tags, created, last_modified
+    SELECT 
+        graces.link, 
+        graces.description, 
+        graces.tags, 
+        graces.created, 
+        graces.last_modified
     FROM graces 
     WHERE ( p_search IS NULL OR 
-            description ILIKE '%' || p_search || '%' OR
-            link ILIKE '%' || p_search || '%')
-    AND (p_tags IS NULL OR tags && p_tags);
+            graces.description ILIKE '%' || p_search || '%' OR
+            graces.link ILIKE '%' || p_search || '%')
+    AND (p_tags IS NULL OR graces.tags && p_tags);
 END;
 $$ LANGUAGE plpgsql; 
