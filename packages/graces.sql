@@ -33,3 +33,24 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION graces_show(
+    p_search TEXT, 
+    p_tags TEXT[]
+) RETURNS TABLE (
+    link TEXT, 
+    description TEXT, 
+    tags TEXT[], 
+    created DATE, 
+    last_modified DATE
+) AS $$
+BEGIN 
+    RETURN QUERY 
+    SELECT link, description, tags, created, last_modified
+    FROM graces 
+    WHERE ( p_search IS NULL OR 
+            description ILIKE '%' || p_search || '%' OR
+            link ILIKE '%' || p_search || '%')
+    AND (p_tags IS NULL OR tags && p_tags);
+END;
+$$ LANGUAGE plpgsql; 
