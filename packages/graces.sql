@@ -3,10 +3,15 @@ CREATE OR REPLACE FUNCTION graces_collect(
     p_description TEXT,
     p_tags TEXT[], 
     p_player TEXT
-) RETURNS VOID AS $$
+) RETURNS INT AS $$
+DECLARE 
+    r_id INT; 
 BEGIN
     INSERT INTO graces (link, description, tags, created, last_modified, player)
-    VALUES (p_link, p_description, p_tags, CURRENT_DATE, CURRENT_DATE, p_player);
+    VALUES (p_link, p_description, p_tags, CURRENT_DATE, CURRENT_DATE, p_player)
+    RETURNING graces.id INTO r_id;
+
+    RETURN r_id; 
 END; 
 $$ LANGUAGE plpgsql;
 
