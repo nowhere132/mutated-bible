@@ -19,14 +19,17 @@ CREATE OR REPLACE FUNCTION graces_enhance(
     p_id INT,
     p_description TEXT,
     p_tags TEXT[]
-) RETURNS VOID AS $$
+) RETURNS INT AS $$
+DECLARE 
+    r_id INT; 
 BEGIN
     -- Check if description is provided and update it
     IF p_description IS NOT NULL THEN
         UPDATE graces
         SET description = p_description,
             last_modified = CURRENT_DATE
-        WHERE id = p_id;
+        WHERE id = p_id
+        RETURNING graces.id INTO r_id;
     END IF;
 
     -- Check if tags are provided and update them
@@ -34,8 +37,11 @@ BEGIN
         UPDATE graces
         SET tags = p_tags,
             last_modified = CURRENT_DATE
-        WHERE id = p_id;
+        WHERE id = p_id
+        RETURNING graces.id INTO r_id;
     END IF;
+
+    RETURN r_id; 
 END;
 $$ LANGUAGE plpgsql;
 
