@@ -71,7 +71,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION graces_link(
     p_from_id INT, 
     p_to_id INT
-) AS $$
+) RETURNS VOID AS $$
 BEGIN 
     IF NOT EXISTS (SELECT 1 FROM graces WHERE graces.id = p_from_id) OR 
        NOT EXISTS (SELECT 1 FROM graces WHERE graces.id = p_to_id) THEN
@@ -80,7 +80,7 @@ BEGIN
 
     INSERT INTO graces_pointers (from_grace_id, to_grace_id)
     VALUES (p_from_id, p_to_id)
-    ON CONFLICT (from_grace_id, to_grace_id) DO UPDATE;
+    ON CONFLICT (from_grace_id, to_grace_id) DO NOTHING;
 END;
 $$ LANGUAGE plpgsql;
 

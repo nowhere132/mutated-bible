@@ -1,6 +1,9 @@
 # Use the official PostgreSQL image
 FROM postgres:latest
 
+# stop caching please i beg you 
+ARG CACHEBUST=1
+
 # Copy the SQL scripts and initialization script into the container
 COPY ./init.sh /docker-entrypoint-initdb.d/
 COPY ./ddl /docker-entrypoint-initdb.d/ddl/

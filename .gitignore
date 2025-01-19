@@ -1,3 +1,2 @@
-run-docker.sh
-*.log
+shell-utils
 shell.nix
