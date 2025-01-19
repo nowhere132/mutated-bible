@@ -64,3 +64,132 @@ BEGIN
     AND (p_tags IS NULL OR graces.tags && p_tags);
 END;
 $$ LANGUAGE plpgsql; 
+
+
+-- graces_link(p_from_id, p_to_id)
+-- to create a directed edge (link) between 2 nodes (graces)
+CREATE OR REPLACE FUNCTION graces_link(
+    p_from_id INT, 
+    p_to_id INT
+) AS $$
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM graces WHERE graces.id = p_from_id) OR 
+       NOT EXISTS (SELECT 1 FROM graces WHERE graces.id = p_to_id) THEN
+        RAISE EXCEPTION 'Both IDs must exist in order to link'; 
+    END IF; 
+
+    INSERT INTO graces_pointers (from_grace_id, to_grace_id)
+    VALUES (p_from_id, p_to_id)
+    ON CONFLICT (from_grace_id, to_grace_id) DO UPDATE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- graces_unlink(p_from_id, p_to_id)
+-- to remove a directed edge between 2 nodes
+CREATE OR REPLACE FUNCTION graces_unlink(
+    p_from_id INT, 
+    p_to_id INT
+) RETURNS VOID AS $$ 
+BEGIN 
+    DELETE FROM graces_pointers gp
+    WHERE gp.from_grace_id = p_from_id AND gp.to_grace_id = p_to_id;
+END;
+$$ LANGUAGE plpgsql; 
+
+
+-- graces_delete(p_id)
+-- remove a node (grace) and all related links 
+CREATE OR REPLACE FUNCTION graces_delete(
+    p_id INT
+) RETURNS VOID AS $$
+BEGIN 
+    DELETE FROM graces WHERE graces.id = p_id; 
+END; 
+$$ LANGUAGE plpgsql;
+
+
+-- graces_get_connection(p_id)
+-- show all connections (neighbors) of a grace 
+-- to construct a knowledge graph, repeat this function for all nodes 
+CREATE OR REPLACE FUNCTION graces_get_connections(
+    p_id INT
+) RETURNS TABLE (
+    this JSONB, 
+    neighbors JSONB, 
+    edges JSONB
+) AS $$ 
+BEGIN 
+    RETURN QUERY 
+
+    WITH 
+    -- this node info json 
+    this_info AS (
+        SELECT jsonb_build_object(
+            'id', g.id::TEXT, 
+            'data', jsonb_build_object(
+                'label', g.link, 
+                'description', g.description, 
+                'tags', g.tags
+            )
+        ) as this_info_json 
+        FROM graces g 
+        WHERE g.id = p_id
+    ),
+
+    -- neighbor nodes info json
+    neighbors_info AS (
+        SELECT DISTINCT 
+            g.id, 
+            g.link, 
+            g.description, 
+            g.tags 
+        FROM graces g INNER JOIN graces_pointers gp 
+        ON (gp.from_grace_id = p_id AND gp.to_grace_id = g.id)
+        OR (gp.to_grace_id = p_id AND gp.from_grace_id = p_id)
+    ),
+
+    -- edges info json
+    edges_info AS (
+        SELECT
+            gp.from_grace_id, 
+            gp.to_grace_id
+        FROM graces_pointers gp
+        WHERE gp.from_grace_id = p_id OR gp.to_grace_id = p_id
+    )
+
+    -- extracting all json format to return
+    SELECT
+        -- info of this node in reactflow fmt
+        (SELECT this_info_json FROM this_info), 
+
+        -- info of neighbor nodes in reactflow fmt
+        COALESCE(
+            (SELECT jsonb_agg(
+                jsonb_build_object(
+                    'id', n.id::TEXT, 
+                    'data', jsonb_build_object(
+                        'label', n.link, 
+                        'description', n.description, 
+                        'tags', n.tags
+                    )
+                )
+            )
+            FROM neighbors_info n),
+            '[]'::jsonb
+        ), 
+
+        -- info of edges in reactflow fmt 
+        COALESCE(
+            (SELECT jsonb_agg(
+                jsonb_build_object(
+                    'id', e.from_grace_id::TEXT || '-' || e.to_grace_id::TEXT, 
+                    'source', e.from_grace_id::TEXT, 
+                    'target', e.to_grace_id::TEXT
+                )
+            )
+            FROM edges_info e), 
+            '[]'::jsonb
+        );
+
+END; 
+$$ LANGUAGE plpgsql; 

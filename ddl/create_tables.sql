@@ -7,3 +7,9 @@ CREATE TABLE graces (
     last_modified DATE NOT NULL DEFAULT CURRENT_DATE, -- Last modified date
     player TEXT NOT NULL                     -- Name of the player/user who collected the grace
 );
+
+CREATE TABLE graces_pointers(
+    from_grace_id INT FOREIGN KEY REFERENCES graces(id) ON DELETE CASCADE; 
+    to_grace_id INT FOREIGN KEY REFERENCES graces(id) ON DELETE CASCADE; 
+    PRIMARY KEY (from_grace_id, to_grace_id); 
+);
