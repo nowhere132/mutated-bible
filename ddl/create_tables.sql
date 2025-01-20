@@ -9,7 +9,9 @@ CREATE TABLE graces (
 );
 
 CREATE TABLE graces_pointers(
-    from_grace_id INT FOREIGN KEY REFERENCES graces(id) ON DELETE CASCADE; 
-    to_grace_id INT FOREIGN KEY REFERENCES graces(id) ON DELETE CASCADE; 
-    PRIMARY KEY (from_grace_id, to_grace_id); 
+    from_grace_id INT,
+    to_grace_id INT,
+    FOREIGN KEY (from_grace_id) REFERENCES graces(id) ON DELETE CASCADE,
+    FOREIGN KEY (to_grace_id) REFERENCES graces(id) ON DELETE CASCADE,
+    PRIMARY KEY (from_grace_id, to_grace_id)
 );
